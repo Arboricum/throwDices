@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <title>Dadi2</title>
+ <link rel="stylesheet" href=""> 
+ <style>
+    .dice {
+        border: 2px solid red;
+        width: 30px;
+        height: 30px;
+        background-color: rgba(191, 200, 180, 0.766);
+        text-align: center;
+        display: inline-block;
+        margin-right: 5px;
+    }
+    label {
+        margin-right: 5px;
+        margin-left: 5px;
+    }
+    input[type='number'] {
+        width: 25px;
+    }
+    #dadiFormParent {
+        display: none;
+    }
+ </style>
+ 
+</head>
+
+<body>
+<h2>Tira i dadi!</h2>
+<p>Questa app ti permette di tirare fino a 32 dadi con un numero personalizzabile di facce (da 2 a 32) per ogni dado</p>
+<br>
+<br>
+<div class="startForm">
+    <fieldset>
+        <form action="#">
+            <label for="numDadi">Numero di dadi</label>
+            <input type="number" id="numDadi" min="1" max="32" value="1">
+            <button type="submit" class="btn">Ok</button>
+            <label for="preferiti">Preferiti</label>
+            <select id="preferiti">
+                <option value="default">Nessun preferito</option>
+            </select>
+        </form>
+    </fieldset>
+    <fieldset id="dadiFormParent">
+        <form action="#" id="dadiForm">            
+        </form>
+    </fieldset>
+</div>
+
+<div class="campoDadi">
+</div>
+
+</body>
+
+<script>
+    const setBtn = document.querySelector('.btn');
+    setBtn.addEventListener('click', setDice);
+    const numDadi = document.querySelector('#numDadi');
+    const dadiForm = document.querySelector('#dadiForm');
+    const campoDadi = document.querySelector('.campoDadi');
+    let defaultValue = 2;
+    let loadedItem = false;
+    let tempDadiValue = 0;
+
+    function setDice(dadiTot, dadiValues) {
+        if (numDadi.value < 33) {
+            dadiForm.innerHTML = '';
+            campoDadi.innerHTML = '';
+            
+            if (loadedItem) {
+                tempDadiValue = dadiTot;
+            } else {
+                tempDadiValue = numDadi.value;
+            }
+            
+            for (let i = 1; i <= tempDadiValue; i++) {
+                let idTemp = 'dado' + i;
+                let label = document.createElement('label');
+                label.setAttribute('for', idTemp);
+                label.innerHTML = 'Facce del dado ' + i + ': ';
+                if (loadedItem) {
+                    defaultValue = dadiValues[i-1];
+                }
+                let input = Object.assign(document.createElement('input'), {
+                  type: 'number',
+                  id: idTemp,
+                  min: 2,
+                  max: 32,
+                  value: defaultValue
+                });
+                input.classList.add('facceDadi');
+                dadiForm.appendChild(label);
+                dadiForm.appendChild(input);
+            }
+            throwBtn = document.createElement('button');
+            throwBtn.innerHTML = 'Tira i dadi!';
+            throwBtn.addEventListener('click', throwDice);
+            saveBtn = document.createElement('button');
+            saveBtn.innerHTML = 'Salva impostazioni';
+            saveBtn.addEventListener('click', saveSet);
+            dadiForm.appendChild(document.createElement('br'));
+            dadiForm.appendChild(saveBtn);
+            dadiForm.appendChild(document.createElement('br'));
+            dadiForm.appendChild(throwBtn);
+            dadiForm.parentElement.style.display = 'block';
+            loadedItem = false;
+        }
+    }
+
+    function throwDice() {
+        const facceDadi = document.querySelectorAll('.facceDadi');
+        campoDadi.innerHTML = '';
+        let throwResults = [];
+        
+        let tValue = 0;
+        let stopExecution = false;
+        for (let i = 0; i < tempDadiValue; i++) {
+            if (facceDadi[i].value > 32) {
+                stopExecution = true;
+                break;
+            };
+            tValue = Math.floor((Math.random() * facceDadi[i].value) + 1);
+            throwResults.push([tValue, facceDadi[i].id]);
+        }
+        let totR = 0;
+        if (!stopExecution) {
+            for (let i = 0; i < throwResults.length; i++) {
+                let diceTempLabel = document.createElement('span');
+                let diceTemp = document.createElement('b');
+                diceTempLabel.innerHTML = throwResults[i][1];
+                diceTemp.innerHTML = throwResults[i][0];
+                diceTemp.classList.add('dice');
+                campoDadi.appendChild(diceTempLabel);
+                campoDadi.appendChild(diceTemp);
+                totR += throwResults[i][0];
+            }
+        }
+    }
+
+    function saveSet() {
+        const selectPreferiti = document.querySelector('#preferiti');
+        const facceDadi = document.querySelectorAll('.facceDadi');
+        let preferito = prompt("Save with name", "Inserisci nome");
+    
+        if (preferito !== 'Inserisci nome' && !localStorage.getItem(preferito)) {
+            let impostazioni = {}
+        
+            for (let i = 0; i < facceDadi.length; i++) {
+                impostazioni[i] = facceDadi[i].value;
+            }
+            localStorage.setItem(preferito, JSON.stringify(impostazioni));
+        
+        } else if (preferito !== 'Inserisci nome' && localStorage.getItem(preferito)) {
+            let confirmOverwrite = confirm("This file exists: do you want to overwrite it?");
+        
+            if (confirmOverwrite) {
+                let impostazioni = {}
+        
+                for (let i = 0; i < facceDadi.length; i++) {
+                    impostazioni[i] = facceDadi[i].value;
+                }
+                localStorage.setItem(preferito, JSON.stringify(impostazioni));
+            } else {
+                let askAnotherName = confirm("Do you want to provide another name?");
+                if (askAnotherName) {
+                    saveSet();
+                }
+            }
+        }
+        let tempOption = document.createElement('option');
+        tempOption.setAttribute('value', preferito);
+        tempOption.innerHTML = preferito;
+        selectPreferiti.addEventListener('change', getSet);
+        selectPreferiti.appendChild(tempOption);
+    }
+
+    let tempPreferito = {};
+    
+    function getSet(event) {
+        tempPreferito = JSON.parse(localStorage.getItem(event.currentTarget.value));
+        if (tempPreferito) {
+            loadedItem = true;
+            setDice(Object.keys(tempPreferito).length, tempPreferito);
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+  const selectPreferiti = document.querySelector('#preferiti');
+  const localStorageKeys = Object.keys(localStorage);
+
+  // Iterate over localStorage keys
+  localStorageKeys.forEach((key) => {
+    let option = document.createElement('option');
+    option.setAttribute('value', key);
+    option.innerHTML = key;
+    selectPreferiti.addEventListener('change', getSet);
+    selectPreferiti.appendChild(option);
+  });
+});
+
+</script>
+
+</html>
